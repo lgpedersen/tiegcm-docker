@@ -1,0 +1,27 @@
+#!/bin/sh
+
+export MAKEFLAGS=-j$(nproc)
+
+RES=${RES:-5.0}
+DATA=${DATA:-/data}
+
+if [ ! -d /home/tiegcm/tiegcm2.0 ]; then
+    tar xf /opt/tiegcm/tiegcm2.0.tar.gz
+    patch -p1 < /opt/tiegcm/tiegcm2.0.patch
+    sed -i 's|set tgcmdata = tiegcm_res.*|set tgcmdata = '"$DATA"'|' tiegcm-linux.job
+    sed -i 's/set input    = tiegcm_res.*/set input    = tiegcm_res'"$RES"'.inp/' tiegcm-linux.job
+    sed -i 's/set output   = tiegcm_res.*/set output   = tiegcm_res'"$RES"'.out/' tiegcm-linux.job
+    sed -i 's/set modelres.*/set modelres = '"$RES"'/' tiegcm-linux.job
+    sed -i 's/-j4/-j`nproc`/' tiegcm-linux.job
+
+    # if [ -n "$YEAR" ] && [ -n "$DAY" ]; then
+    #     sed -i 's/START_YEAR.*/START_YEAR = '"$YEAR"'/' tiegcm_res${RES}.inp
+    #     sed -i 's/START_DAY.*/START_DAY = '"$DAY"'/' tiegcm_res${RES}.inp
+    # fi
+
+    if [ "$OUTPUT" = "echo" ]; then
+        sed -i 's/$mpirun -machinefile machines.ini -np $nproc $model $input >&! $output/$mpirun -machinefile machines.ini -np $nproc $model $input | tee $output/' tiegcm-linux.job
+    fi
+fi
+
+./tiegcm-linux.job
